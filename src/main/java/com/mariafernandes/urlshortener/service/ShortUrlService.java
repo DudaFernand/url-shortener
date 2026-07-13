@@ -7,19 +7,15 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
-
 @Service
 public class ShortUrlService {
 
-    private static final String CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int CODE_LENGTH = 6;
-    private final SecureRandom random = new SecureRandom();
-
     private final ShortUrlRepository repository;
+    private final CodeGenerator codeGenerator;
 
-    public ShortUrlService(ShortUrlRepository repository) {
+    public ShortUrlService(ShortUrlRepository repository, CodeGenerator codeGenerator) {
         this.repository = repository;
+        this.codeGenerator = codeGenerator;
     }
 
     public ShortUrl create(String originalUrl, User owner) {
@@ -44,20 +40,15 @@ public class ShortUrlService {
     }
 
     private String generateUniqueCode() {
-        String code;
-        do {
-            code = randomCode();
-        } while (repository.findByCode(code).isPresent());
-        return code;
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String code = codeGenerator.generateCode();
+            if (repository.findByCode(code).isEmpty()) {
+                return code;
+            }
+        }
+        throw new RuntimeException("Falha ao gerar código único após 10 tentativas");
     }
 
-    private String randomCode() {
-        StringBuilder sb = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            sb.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
-        }
-        return sb.toString();
-    }
 
     public ShortUrl getByCodeForOwner(String code, User owner) {
         ShortUrl shortUrl = repository.findByCode(code)
