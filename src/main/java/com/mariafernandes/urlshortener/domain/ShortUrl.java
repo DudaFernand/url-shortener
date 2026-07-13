@@ -33,9 +33,14 @@ public class ShortUrl {
     @Column(name = "click_count", nullable = false)
     private Long clickCount = 0L;
 
-    public ShortUrl(String code, String originalUrl) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User owner;
+
+    public ShortUrl(String code, String originalUrl, User owner) {
         this.code = code;
         this.originalUrl = originalUrl;
+        this.owner = owner;
         this.createdAt = LocalDateTime.now();
     }
 }

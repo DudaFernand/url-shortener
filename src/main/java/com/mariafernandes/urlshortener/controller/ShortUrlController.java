@@ -1,6 +1,7 @@
 package com.mariafernandes.urlshortener.controller;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
+import com.mariafernandes.urlshortener.domain.User;
 import com.mariafernandes.urlshortener.dto.CreateShortUrlRequest;
 import com.mariafernandes.urlshortener.dto.ShortUrlResponse;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -22,8 +24,9 @@ public class ShortUrlController {
     }
 
     @PostMapping("/links")
-    public ResponseEntity<ShortUrlResponse> create(@Valid @RequestBody CreateShortUrlRequest request) {
-        ShortUrl shortUrl = service.create(request.originalUrl());
+    public ResponseEntity<ShortUrlResponse> create(@Valid @RequestBody CreateShortUrlRequest request,
+                                                     @AuthenticationPrincipal User user) {
+        ShortUrl shortUrl = service.create(request.originalUrl(), user);
         ShortUrlResponse response = new ShortUrlResponse(
             shortUrl.getCode(),
             shortUrl.getOriginalUrl(),

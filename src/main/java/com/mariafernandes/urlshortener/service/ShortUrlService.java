@@ -3,6 +3,7 @@ package com.mariafernandes.urlshortener.service;
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
 import org.springframework.stereotype.Service;
+import com.mariafernandes.urlshortener.domain.User;
 
 import java.security.SecureRandom;
 
@@ -19,9 +20,9 @@ public class ShortUrlService {
         this.repository = repository;
     }
 
-    public ShortUrl create(String originalUrl) {
+    public ShortUrl create(String originalUrl, User owner) {
         String code = generateUniqueCode();
-        ShortUrl shortUrl = new ShortUrl(code, originalUrl);
+        ShortUrl shortUrl = new ShortUrl(code, originalUrl, owner);
         return repository.save(shortUrl);
     }
 
