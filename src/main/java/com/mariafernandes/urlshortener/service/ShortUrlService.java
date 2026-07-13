@@ -1,9 +1,11 @@
 package com.mariafernandes.urlshortener.service;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
-import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
-import org.springframework.stereotype.Service;
 import com.mariafernandes.urlshortener.domain.User;
+import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 
@@ -26,11 +28,19 @@ public class ShortUrlService {
         return repository.save(shortUrl);
     }
 
-    public ShortUrl findByCodeOrThrow(String code) {
-        ShortUrl shortUrl = repository.findByCode(code)
+    @Cacheable(value = "shortUrls", key = "#code")
+    public String findOriginalUrlByCode(String code) {
+        return repository.findByCode(code)
+            .map(ShortUrl::getOriginalUrl)
             .orElseThrow(() -> new IllegalArgumentException("Link não encontrado: " + code));
-        shortUrl.setClickCount(shortUrl.getClickCount() + 1);
-        return repository.save(shortUrl);
+    }
+
+    @Async
+    public void incrementClickCount(String code) {
+        repository.findByCode(code).ifPresent(shortUrl -> {
+            shortUrl.setClickCount(shortUrl.getClickCount() + 1);
+            repository.save(shortUrl);
+        });
     }
 
     private String generateUniqueCode() {

@@ -38,9 +38,11 @@ public class ShortUrlController {
 
     @GetMapping("/{code}")
     public ResponseEntity<Void> redirect(@PathVariable String code) {
-        ShortUrl shortUrl = service.findByCodeOrThrow(code);
+        String originalUrl = service.findOriginalUrlByCode(code);
+        service.incrementClickCount(code);
+
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create(shortUrl.getOriginalUrl()));
+        headers.setLocation(URI.create(originalUrl));
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 }
