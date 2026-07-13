@@ -27,7 +27,7 @@ public class ShortUrlService {
     @Cacheable(value = "shortUrls", key = "#code")
     public String findOriginalUrlByCode(String code) {
         return repository.findByCode(code)
-            .map(ShortUrl::getOriginalUrl)
+            .map(shortUrl -> shortUrl.getOriginalUrl())
             .orElseThrow(() -> new IllegalArgumentException("Link não encontrado: " + code));
     }
 

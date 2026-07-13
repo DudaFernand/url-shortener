@@ -19,5 +19,24 @@ services:
     ports:
       - "6379:6379"
 
+  app:
+    build: .
+    container_name: urlshortener-app
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/urlshortener
+      SPRING_DATASOURCE_USERNAME: urlshortener
+      SPRING_DATASOURCE_PASSWORD: urlshortener
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_EXPIRATION: 86400000
+
 volumes:
   pgdata:
