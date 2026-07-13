@@ -58,4 +58,14 @@ public class ShortUrlService {
         }
         return sb.toString();
     }
+
+    public ShortUrl getByCodeForOwner(String code, User owner) {
+        ShortUrl shortUrl = repository.findByCode(code)
+            .orElseThrow(() -> new IllegalArgumentException("Link não encontrado: " + code));
+    
+        if (shortUrl.getOwner() == null || !shortUrl.getOwner().getId().equals(owner.getId())) {
+            throw new IllegalArgumentException("Link não encontrado: " + code); // ou 403
+        }
+        return shortUrl;
+    }
 }
