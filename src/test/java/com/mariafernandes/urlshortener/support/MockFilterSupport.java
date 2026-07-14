@@ -16,10 +16,14 @@ public final class MockFilterSupport {
     public static void passThrough(Filter... filters) {
         for (Filter filter : filters) {
             doAnswer(invocation -> {
-                ServletRequest request = invocation.getArgument(0);
-                ServletResponse response = invocation.getArgument(1);
-                FilterChain chain = invocation.getArgument(2);
-                chain.doFilter(request, response);
+                try {
+                    ServletRequest request = invocation.getArgument(0);
+                    ServletResponse response = invocation.getArgument(1);
+                    FilterChain chain = invocation.getArgument(2);
+                    chain.doFilter(request, response);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
                 return null;
             }).when(filter).doFilter(any(), any(), any());
         }
