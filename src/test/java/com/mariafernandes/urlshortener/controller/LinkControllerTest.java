@@ -11,6 +11,8 @@ import com.mariafernandes.urlshortener.security.JwtService;
 import com.mariafernandes.urlshortener.security.RateLimitFilter;
 import com.mariafernandes.urlshortener.security.SecurityConfig;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
+import com.mariafernandes.urlshortener.support.MockFilterSupport;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -54,6 +56,11 @@ class LinkControllerTest {
 
     @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
+
+    @BeforeEach
+    void configureFilters() {
+        MockFilterSupport.passThrough(rateLimitFilter, jwtAuthFilter);
+    }
 
     @Test
     void create_deveRetornar401SemToken() throws Exception {
