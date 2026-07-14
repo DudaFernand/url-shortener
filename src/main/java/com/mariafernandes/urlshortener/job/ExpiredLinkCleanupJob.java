@@ -1,4 +1,4 @@
-package com.mariafernandes.urlshortener.service;
+package com.mariafernandes.urlshortener.job;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
@@ -7,12 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service
+@Component
 public class ExpiredLinkCleanupJob {
 
     private static final Logger log = LoggerFactory.getLogger(ExpiredLinkCleanupJob.class);

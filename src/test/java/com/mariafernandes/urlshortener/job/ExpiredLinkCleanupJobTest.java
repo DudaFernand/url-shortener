@@ -1,4 +1,4 @@
-package com.mariafernandes.urlshortener.service;
+package com.mariafernandes.urlshortener.job;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
