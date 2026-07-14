@@ -4,13 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.domain.User;
 import com.mariafernandes.urlshortener.dto.CreateShortUrlRequest;
+import com.mariafernandes.urlshortener.exception.GlobalExceptionHandler;
 import com.mariafernandes.urlshortener.security.CustomUserDetailsService;
+import com.mariafernandes.urlshortener.security.JwtAuthFilter;
 import com.mariafernandes.urlshortener.security.JwtService;
 import com.mariafernandes.urlshortener.security.RateLimitFilter;
+import com.mariafernandes.urlshortener.security.SecurityConfig;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -28,13 +32,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(LinkController.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class LinkControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean
     private ShortUrlService service;
@@ -47,6 +51,9 @@ class LinkControllerTest {
 
     @MockitoBean
     private RateLimitFilter rateLimitFilter;
+
+    @MockitoBean
+    private JwtAuthFilter jwtAuthFilter;
 
     @Test
     void create_deveRetornar401SemToken() throws Exception {

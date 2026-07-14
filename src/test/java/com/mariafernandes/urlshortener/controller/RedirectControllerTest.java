@@ -1,13 +1,17 @@
 package com.mariafernandes.urlshortener.controller;
 
+import com.mariafernandes.urlshortener.exception.GlobalExceptionHandler;
 import com.mariafernandes.urlshortener.exception.LinkExpiredException;
 import com.mariafernandes.urlshortener.security.CustomUserDetailsService;
+import com.mariafernandes.urlshortener.security.JwtAuthFilter;
 import com.mariafernandes.urlshortener.security.JwtService;
 import com.mariafernandes.urlshortener.security.RateLimitFilter;
+import com.mariafernandes.urlshortener.security.SecurityConfig;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RedirectController.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class RedirectControllerTest {
 
     @Autowired
@@ -33,6 +38,9 @@ class RedirectControllerTest {
 
     @MockitoBean
     private RateLimitFilter rateLimitFilter;
+
+    @MockitoBean
+    private JwtAuthFilter jwtAuthFilter;
 
     @Test
     void redirect_deveRetornar302ComLocationCorreto() throws Exception {
