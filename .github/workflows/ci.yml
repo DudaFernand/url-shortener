@@ -47,7 +47,9 @@ jobs:
           cache: maven
 
       - name: Rodar testes
-        run: ./mvnw clean verify
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/urlshortener
           SPRING_DATASOURCE_USERNAME: urlshortener
