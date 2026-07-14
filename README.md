@@ -142,3 +142,10 @@ O pipeline (GitHub Actions) roda a cada push ou pull request para `main`:
 2. Configura Java 21
 3. Roda `mvn clean verify` (compilação + testes)
 4. Builda a imagem Docker da aplicação, validando que o Dockerfile está saudável
+
+## Possíveis melhorias futuras
+
+1. Rate limiting para evitar abuso do endpoint de criação de links
+2. Paginação e filtros na listagem de links por usuário
+3. Métricas de observabilidade (Prometheus/Grafana)
+4. Expiração configurável de links com job de limpeza automática
