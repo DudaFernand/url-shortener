@@ -3,6 +3,7 @@ package com.mariafernandes.urlshortener.controller;
 import com.mariafernandes.urlshortener.exception.LinkExpiredException;
 import com.mariafernandes.urlshortener.security.CustomUserDetailsService;
 import com.mariafernandes.urlshortener.security.JwtService;
+import com.mariafernandes.urlshortener.security.RateLimitFilter;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ class RedirectControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
 
     @Test
     void redirect_deveRetornar302ComLocationCorreto() throws Exception {

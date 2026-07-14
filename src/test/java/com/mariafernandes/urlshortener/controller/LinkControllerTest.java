@@ -6,6 +6,7 @@ import com.mariafernandes.urlshortener.domain.User;
 import com.mariafernandes.urlshortener.dto.CreateShortUrlRequest;
 import com.mariafernandes.urlshortener.security.CustomUserDetailsService;
 import com.mariafernandes.urlshortener.security.JwtService;
+import com.mariafernandes.urlshortener.security.RateLimitFilter;
 import com.mariafernandes.urlshortener.service.ShortUrlService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ class LinkControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
 
     @Test
     void create_deveRetornar401SemToken() throws Exception {
