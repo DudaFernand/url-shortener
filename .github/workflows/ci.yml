@@ -10,31 +10,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: urlshortener
-          POSTGRES_USER: urlshortener
-          POSTGRES_PASSWORD: urlshortener
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -46,18 +21,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Rodar testes
+      - name: Rodar testes com Testcontainers
         run: |
           chmod +x mvnw
           ./mvnw clean verify
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/urlshortener
-          SPRING_DATASOURCE_USERNAME: urlshortener
-          SPRING_DATASOURCE_PASSWORD: urlshortener
-          SPRING_DATA_REDIS_HOST: localhost
-          SPRING_DATA_REDIS_PORT: 6379
           JWT_SECRET: chave-secreta-apenas-para-ci-nao-usar-em-producao-1234567890123456
           JWT_EXPIRATION: 86400000
+          TESTCONTAINERS_RYUK_DISABLED: false
 
       - name: Build da imagem Docker
         run: docker build -t urlshortener:${{ github.sha }} .

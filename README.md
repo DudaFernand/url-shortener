@@ -22,7 +22,7 @@ Encurtadores de URL parecem simples à primeira vista, mas escondem boa profundi
 - Spring Data Redis para cache
 - Docker + Docker Compose para orquestração local
 - GitHub Actions para CI/CD
-- JUnit 5 + Mockito + H2 para testes
+- JUnit 5 + Mockito + Testcontainers (PostgreSQL) para testes de integração
 
 ## Arquitetura
 
@@ -179,18 +179,21 @@ Após expirar, `GET /{code}` retorna `410 Gone`.
 
 O projeto tem testes unitários e de integração cobrindo service, repository, controller e a estratégia de geração de código.
 
+**Pré-requisito para testes de integração:** Docker em execução (Testcontainers sobe PostgreSQL 16 e Redis 7 automaticamente).
+
 ```bash
 ./mvnw clean test
 ```
 
-- **Testes unitários:** `ShortUrlServiceTest`, `RandomCodeGeneratorTest`, `job/ExpiredLinkCleanupJobTest` — lógica de negócio isolada com Mockito
-- **Testes de integração:** `ShortUrlRepositoryTest` (`@DataJpaTest`), `LinkControllerTest`, `RedirectControllerTest` (`@WebMvcTest`) — validam a integração com o banco e a camada web
+- **Testes unitários:** `ShortUrlServiceTest`, `RandomCodeGeneratorTest`, `job/ExpiredLinkCleanupJobTest` — lógica isolada com Mockito (sem banco)
+- **Testes de integração com PostgreSQL real:** `ShortUrlRepositoryTest` (`@DataJpaTest` + Testcontainers), `UrlshortenerApplicationTests` (`@SpringBootTest` + Testcontainers com Postgres e Redis)
+- **Testes de controller:** `LinkControllerTest`, `RedirectControllerTest` (`@WebMvcTest` — sem banco)
 
 ## CI/CD
 
 O pipeline (GitHub Actions) roda a cada push ou pull request para `main`:
 
-1. Sobe Postgres e Redis como serviços auxiliares
+1. Sobe PostgreSQL e Redis via Testcontainers (Docker) nos testes de integração
 2. Configura Java 21
 3. Roda `mvn clean verify` (compilação + testes)
 4. Builda a imagem Docker da aplicação, validando que o Dockerfile está saudável
