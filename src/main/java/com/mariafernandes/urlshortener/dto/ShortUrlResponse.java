@@ -6,5 +6,6 @@ public record ShortUrlResponse(
     String code,
     String originalUrl,
     String shortUrl,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    LocalDateTime expiresAt
 ) {}

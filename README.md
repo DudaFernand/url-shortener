@@ -10,6 +10,7 @@ Encurtadores de URL parecem simples à primeira vista, mas escondem boa profundi
 - Contagem de cliques por link, processada de forma assíncrona
 - Cache de leitura no redirecionamento (padrão cache-aside com Redis)
 - Tratamento centralizado de erros com respostas HTTP consistentes
+- Expiração configurável de links com job de limpeza automática
 
 ## Tecnologias
 
@@ -66,6 +67,12 @@ Cheguei a considerar separar o service em interfaces menores (`UrlReader`/`UrlWr
 
 A API é stateless por design (`SessionCreationPolicy.STATELESS`): nenhuma sessão é mantida no servidor. Cada requisição se autentica sozinha através do token enviado no header `Authorization`. Essa escolha facilita escalar horizontalmente — qualquer instância da aplicação pode validar qualquer token, sem precisar compartilhar estado de sessão entre instâncias.
 
+### Por que expiração configurável + job de limpeza
+
+Links podem ter TTL definido na criação (`expiresInDays`) ou herdarem o padrão global (`app.link.default-expiration-days`). Na leitura, links expirados retornam `410 Gone` antes mesmo do job rodar. O job agendado (`ExpiredLinkCleanupJob`) remove registros expirados do Postgres e evicta as entradas correspondentes no Redis.
+
+**Trade-off aceito:** se um link expirar enquanto ainda está no cache Redis, o redirect pode funcionar por até 10 minutos (TTL do cache) até o próximo cleanup ou expiração natural do cache. A validação na leitura com cache miss garante 410 imediato quando o cache não tem a entrada.
+
 ## Como rodar
 
 **Pré-requisito:** Docker e Docker Compose instalados.
@@ -97,8 +104,19 @@ A API fica disponível em `http://localhost:8080`.
 | POST   | /auth/register   | Não                 | Cria um novo usuário e retorna um token JWT  |
 | POST   | /auth/login      | Não                 | Autentica um usuário e retorna um token JWT  |
 | POST   | /links           | Sim (Bearer token)  | Cria um link curto vinculado ao usuário       |
-| GET    | /{code}          | Não                 | Redireciona para a URL original               |
+| GET    | /links           | Sim (Bearer token)  | Lista links do usuário (paginado)             |
 | GET    | /links/{code}    | Sim (Bearer token)  | Estatísticas do link (cliques, data, etc.)    |
+| GET    | /{code}          | Não                 | Redireciona para a URL original               |
+
+### Listagem paginada
+
+```
+GET /links                              → página 0, 10 itens, mais recentes primeiro
+GET /links?page=1&size=5                → página 1, 5 itens
+GET /links?sort=clickCount,desc         → ordenar por mais clicados
+GET /links?search=google                → filtrar por URL contendo "google"
+GET /links?search=github&page=0&size=5  → filtro + paginação combinados
+```
 
 ### Exemplo de criação de link
 
@@ -108,7 +126,8 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "originalUrl": "https://www.google.com"
+  "originalUrl": "https://www.google.com",
+  "expiresInDays": 7
 }
 ```
 
@@ -119,9 +138,14 @@ Resposta:
   "code": "aB3xY9",
   "originalUrl": "https://www.google.com",
   "shortUrl": "http://localhost:8080/aB3xY9",
-  "createdAt": "2026-07-13T10:00:00"
+  "createdAt": "2026-07-13T10:00:00",
+  "expiresAt": "2026-07-20T10:00:00"
 }
 ```
+
+Se `expiresInDays` for omitido, usa `app.link.default-expiration-days` (30 dias por padrão). Use `0` na configuração global para links permanentes.
+
+Após expirar, `GET /{code}` retorna `410 Gone`.
 
 ## Testes
 
@@ -131,8 +155,8 @@ O projeto tem testes unitários e de integração cobrindo service, repository, 
 ./mvnw clean test
 ```
 
-- **Testes unitários:** `ShortUrlServiceTest`, `RandomCodeGeneratorTest` — lógica de negócio isolada com Mockito
-- **Testes de integração:** `ShortUrlRepositoryTest` (`@DataJpaTest`), `ShortUrlControllerTest` (`@WebMvcTest`) — validam a integração com o banco e a camada web
+- **Testes unitários:** `ShortUrlServiceTest`, `RandomCodeGeneratorTest`, `ExpiredLinkCleanupJobTest` — lógica de negócio isolada com Mockito
+- **Testes de integração:** `ShortUrlRepositoryTest` (`@DataJpaTest`), `LinkControllerTest`, `RedirectControllerTest` (`@WebMvcTest`) — validam a integração com o banco e a camada web
 
 ## CI/CD
 
@@ -148,4 +172,3 @@ O pipeline (GitHub Actions) roda a cada push ou pull request para `main`:
 1. Rate limiting para evitar abuso do endpoint de criação de links
 2. Paginação e filtros na listagem de links por usuário
 3. Métricas de observabilidade (Prometheus/Grafana)
-4. Expiração configurável de links com job de limpeza automática
