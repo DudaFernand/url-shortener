@@ -54,7 +54,8 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: urlshortener
           SPRING_DATA_REDIS_HOST: localhost
           SPRING_DATA_REDIS_PORT: 6379
-          JWT_SECRET: chave-secreta-apenas-para-ci-nao-usar-em-producao-1234567890
+          JWT_SECRET: chave-secreta-apenas-para-ci-nao-usar-em-producao-1234567890123456
+          JWT_EXPIRATION: 86400000
 
       - name: Build da imagem Docker
         run: docker build -t urlshortener:${{ github.sha }} .
