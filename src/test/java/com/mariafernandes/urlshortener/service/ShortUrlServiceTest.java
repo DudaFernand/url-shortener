@@ -7,7 +7,6 @@ import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -28,13 +27,11 @@ class ShortUrlServiceTest {
     @Mock
     private CodeGenerator codeGenerator;
 
-    @InjectMocks
     private ShortUrlService service;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "defaultExpirationDays", 0);
-        ReflectionTestUtils.setField(service, "maxExpirationDays", 365);
+        service = new ShortUrlService(repository, codeGenerator, 0, 365);
     }
 
     @Test
