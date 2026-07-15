@@ -2,6 +2,7 @@ package com.mariafernandes.urlshortener.service;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.domain.User;
+import com.mariafernandes.urlshortener.exception.InvalidExpirationException;
 import com.mariafernandes.urlshortener.exception.LinkExpiredException;
 import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -31,7 +31,7 @@ class ShortUrlServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ShortUrlService(repository, codeGenerator, 0, 365);
+        service = new ShortUrlService(repository, codeGenerator, null, 0, 365);
     }
 
     @Test
@@ -66,7 +66,7 @@ class ShortUrlServiceTest {
 
     @Test
     void create_deveUsarDefaultExpirationQuandoNaoInformado() {
-        ReflectionTestUtils.setField(service, "defaultExpirationDays", 30);
+        service = new ShortUrlService(repository, codeGenerator, null, 30, 365);
         User owner = new User("maria@email.com", "123456");
         when(codeGenerator.generateCode()).thenReturn("abc123");
         when(repository.findByCode("abc123")).thenReturn(Optional.empty());
@@ -81,11 +81,11 @@ class ShortUrlServiceTest {
     @Test
     void create_deveLancarExcecaoQuandoExpiracaoExcedeMaximo() {
         User owner = new User("maria@email.com", "123456");
-        when(codeGenerator.generateCode()).thenReturn("abc123");
-        when(repository.findByCode("abc123")).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InvalidExpirationException.class,
             () -> service.create("https://google.com", owner, 400));
+
+        verify(codeGenerator, never()).generateCode();
     }
 
     @Test

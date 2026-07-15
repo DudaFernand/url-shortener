@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,12 +20,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LinkExpiredException.class)
     public ResponseEntity<Map<String, Object>> handleLinkExpired(LinkExpiredException ex) {
-        return ResponseEntity.status(HttpStatus.GONE).body(Map.of(
-            "timestamp", LocalDateTime.now(),
-            "status", 410,
-            "error", "Gone",
-            "message", ex.getMessage()
-        ));
+        return error(HttpStatus.GONE, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -32,32 +28,41 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
             .map(error -> error.getDefaultMessage())
             .collect(Collectors.joining("; "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-            "timestamp", LocalDateTime.now(),
-            "status", 400,
-            "error", "Bad Request",
-            "message", message.isBlank() ? "Dados inválidos" : message
-        ));
+        return error(HttpStatus.BAD_REQUEST, message.isBlank() ? "Dados inválidos" : message);
+    }
+
+    @ExceptionHandler(InvalidExpirationException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidExpiration(InvalidExpirationException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+        return error(HttpStatus.UNAUTHORIZED, "Email ou senha inválidos");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-            "timestamp", LocalDateTime.now(),
-            "status", 404,
-            "error", "Not Found",
-            "message", ex.getMessage()
-        ));
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Erro inesperado", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Ocorreu um erro inesperado");
+    }
+
+    private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(Map.of(
             "timestamp", LocalDateTime.now(),
-            "status", 500,
-            "error", "Internal Server Error",
-            "message", "Ocorreu um erro inesperado"
+            "status", status.value(),
+            "error", status.getReasonPhrase(),
+            "message", message
         ));
     }
 }

@@ -2,10 +2,13 @@ package com.mariafernandes.urlshortener.service;
 
 import com.mariafernandes.urlshortener.domain.ShortUrl;
 import com.mariafernandes.urlshortener.domain.User;
+import com.mariafernandes.urlshortener.exception.InvalidExpirationException;
 import com.mariafernandes.urlshortener.exception.LinkExpiredException;
 import com.mariafernandes.urlshortener.repository.ShortUrlRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
@@ -16,33 +19,45 @@ import java.time.LocalDateTime;
 @Service
 public class ShortUrlService {
 
+    private static final String CACHE_NAME = "shortUrls";
+
     private final ShortUrlRepository repository;
     private final CodeGenerator codeGenerator;
+    private final CacheManager cacheManager;
     private final int defaultExpirationDays;
     private final int maxExpirationDays;
 
     public ShortUrlService(ShortUrlRepository repository,
                            CodeGenerator codeGenerator,
+                           @Autowired(required = false) CacheManager cacheManager,
                            @Value("${app.link.default-expiration-days}") int defaultExpirationDays,
                            @Value("${app.link.max-expiration-days}") int maxExpirationDays) {
         this.repository = repository;
         this.codeGenerator = codeGenerator;
+        this.cacheManager = cacheManager;
         this.defaultExpirationDays = defaultExpirationDays;
         this.maxExpirationDays = maxExpirationDays;
     }
 
     public ShortUrl create(String originalUrl, User owner, Integer expiresInDays) {
+        LocalDateTime expiresAt = calculateExpiresAt(expiresInDays);
         String code = generateUniqueCode();
         ShortUrl shortUrl = new ShortUrl(code, originalUrl, owner);
-        shortUrl.setExpiresAt(calculateExpiresAt(expiresInDays));
+        shortUrl.setExpiresAt(expiresAt);
         return repository.save(shortUrl);
     }
 
-    @Cacheable(value = "shortUrls", key = "#code")
     public String findOriginalUrlByCode(String code) {
+        CachedUrl cached = getFromCache(code);
+        if (cached != null) {
+            assertNotExpired(code, cached.expiresAt());
+            return cached.originalUrl();
+        }
+
         ShortUrl shortUrl = repository.findByCode(code)
             .orElseThrow(() -> new IllegalArgumentException("Link não encontrado: " + code));
         assertNotExpired(shortUrl);
+        putInCache(code, shortUrl.getOriginalUrl(), shortUrl.getExpiresAt());
         return shortUrl.getOriginalUrl();
     }
 
@@ -91,15 +106,19 @@ public class ShortUrlService {
             return null;
         }
         if (days > maxExpirationDays) {
-            throw new IllegalArgumentException(
-                "A expiração máxima permitida é de " + maxExpirationDays + " dias");
+            throw new InvalidExpirationException(maxExpirationDays);
         }
         return LocalDateTime.now().plusDays(days);
     }
 
     private void assertNotExpired(ShortUrl shortUrl) {
-        if (isExpired(shortUrl)) {
-            throw new LinkExpiredException(shortUrl.getCode());
+        assertNotExpired(shortUrl.getCode(), shortUrl.getExpiresAt());
+    }
+
+    private void assertNotExpired(String code, LocalDateTime expiresAt) {
+        if (expiresAt != null && expiresAt.isBefore(LocalDateTime.now())) {
+            evictFromCache(code);
+            throw new LinkExpiredException(code);
         }
     }
 
@@ -107,4 +126,32 @@ public class ShortUrlService {
         return shortUrl.getExpiresAt() != null
             && shortUrl.getExpiresAt().isBefore(LocalDateTime.now());
     }
+
+    private CachedUrl getFromCache(String code) {
+        Cache cache = cache();
+        if (cache == null) {
+            return null;
+        }
+        return cache.get(code, CachedUrl.class);
+    }
+
+    private void putInCache(String code, String originalUrl, LocalDateTime expiresAt) {
+        Cache cache = cache();
+        if (cache != null) {
+            cache.put(code, new CachedUrl(originalUrl, expiresAt));
+        }
+    }
+
+    private void evictFromCache(String code) {
+        Cache cache = cache();
+        if (cache != null) {
+            cache.evict(code);
+        }
+    }
+
+    private Cache cache() {
+        return cacheManager != null ? cacheManager.getCache(CACHE_NAME) : null;
+    }
+
+    public record CachedUrl(String originalUrl, LocalDateTime expiresAt) {}
 }

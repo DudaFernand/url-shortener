@@ -1,6 +1,7 @@
 package com.mariafernandes.urlshortener.service;
 
 import com.mariafernandes.urlshortener.domain.User;
+import com.mariafernandes.urlshortener.exception.EmailAlreadyRegisteredException;
 import com.mariafernandes.urlshortener.repository.UserRepository;
 import com.mariafernandes.urlshortener.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,7 +27,7 @@ public class AuthService {
 
     public String register(String email, String rawPassword) {
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("Email já cadastrado");
+            throw new EmailAlreadyRegisteredException();
         }
         User user = new User(email, passwordEncoder.encode(rawPassword));
         userRepository.save(user);

@@ -1,8 +1,8 @@
 package com.mariafernandes.urlshortener.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -23,7 +23,7 @@ public class CacheConfig {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))
             .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.string())
+                RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.json())
             );
 
         return RedisCacheManager.builder(connectionFactory)
